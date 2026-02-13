@@ -2,81 +2,139 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>360 MEGA ARCADE</title>
+    <title>Partner's 360 Custom Arcade</title>
     <style>
-        :root { --bg: #0f172a; --primary: #8b5cf6; --card-bg: #1e293b; }
-        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; padding: 20px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; max-width: 1400px; margin: 0 auto; }
-        .card { background: var(--card-bg); border-radius: 10px; cursor: pointer; transition: 0.2s; text-align: center; border: 1px solid #334155; }
-        .card:hover { transform: scale(1.05); border-color: var(--primary); }
-        .card img { width: 100%; height: 110px; object-fit: cover; border-radius: 10px 10px 0 0; }
-        .card p { margin: 10px; font-size: 13px; font-weight: bold; }
-
-        /* 게임 실행창 - 배경 클릭 닫기 불가 */
-        #game-viewer {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 10000;
-            flex-direction: column;
-        }
-        .nav { background: #111; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; }
-        .close-btn { background: #ef4444; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        iframe { flex-grow: 1; border: none; background: white; }
+        :root { --bg: #050505; --accent: #00ffcc; }
+        body { background: var(--bg); color: white; font-family: 'Courier New', monospace; margin: 0; padding: 20px; overflow-x: hidden; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
+        .card { background: #111; border: 1px solid #333; border-radius: 8px; cursor: pointer; transition: 0.3s; padding: 10px; text-align: center; }
+        .card:hover { border-color: var(--accent); transform: translateY(-5px); box-shadow: 0 0 15px var(--accent); }
+        .card .icon { font-size: 40px; margin-bottom: 10px; }
+        
+        /* 게임 뷰어 - 배경 클릭해도 안 꺼짐 */
+        #game-view { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; flex-direction: column; align-items: center; justify-content: center; }
+        canvas { background: #000; border: 3px solid var(--accent); max-width: 90%; max-height: 70vh; }
+        .controls { margin-top: 20px; text-align: center; }
+        .exit-btn { background: #ff4757; color: white; border: none; padding: 15px 40px; border-radius: 30px; cursor: pointer; font-size: 18px; font-weight: bold; }
+        .instruction { color: var(--accent); margin-bottom: 10px; font-size: 14px; }
     </style>
 </head>
 <body>
 
-<h2 style="text-align:center;">🎮 360 UNLIMITED GAMES</h2>
+<h1 style="text-align:center; color:var(--accent);">360 NATIVE JS ARCADE</h1>
+<p style="text-align:center;">외부 링크 없음! 100% 자바스크립트로 구동되는 360가지 모드</p>
 
-<div class="grid" id="grid"></div>
+<div class="grid" id="gameGrid"></div>
 
-<div id="game-viewer">
-    <div class="nav">
-        <span id="g-title">Loading...</span>
-        <button class="close-btn" onclick="closeGame()">게임 종료 (X)</button>
+<div id="game-view">
+    <h2 id="game-name">Game Name</h2>
+    <div class="instruction">화면을 클릭/터치하거나 화살표 키로 조작해!</div>
+    <canvas id="gameCanvas"></canvas>
+    <div class="controls">
+        <button class="exit-btn" onclick="stopGame()">게임 종료 (EXIT)</button>
     </div>
-    <iframe id="frame" allow="autoplay; fullscreen; pointer-lock; cross-origin-isolated"></iframe>
 </div>
 
 <script>
-    // 임베딩(Iframe)이 확실히 허용된 게임 리스트 (샘플)
-    const games = [
-        { name: "3D 사격 (FPS)", url: "https://clover-v6p9.github.io/3d-shooter/" },
-        { name: "2048 3D", url: "https://play2048.co/" },
-        { name: "창의적 건설", url: "https://blockly.games/maze?lang=ko" },
-        { name: "Hextris (3D)", url: "https://hextris.io/" },
-        { name: "Pacman Classic", url: "https://macek.github.io/google_pacman/" },
-        { name: "Space Invaders", url: "https://freeinvaders.org/" }
-    ];
+    const grid = document.getElementById('gameGrid');
+    const view = document.getElementById('game-view');
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const gName = document.getElementById('game-name');
 
-    const grid = document.getElementById('grid');
-    const viewer = document.getElementById('game-viewer');
-    const frame = document.getElementById('frame');
-    const gTitle = document.getElementById('g-title');
+    let animationId;
+    let gameState = {};
 
-    // 360개 생성
-    for (let i = 0; i < 360; i++) {
-        const g = games[i % games.length];
+    // 360개 게임 생성
+    for (let i = 1; i <= 360; i++) {
         const card = document.createElement('div');
         card.className = 'card';
-        card.innerHTML = `
-            <img src="https://picsum.photos/seed/${i+50}/200/150" alt="game">
-            <p>${g.name} #${i+1}</p>
-        `;
+        // 아이콘은 번호에 따라 랜덤하게 (FPS, Racing, Shooter 느낌)
+        const icons = ['🚀', '🔫', '🏎️', '👾', '🎾', '🛡️'];
+        const icon = icons[i % icons.length];
         
-        card.onclick = () => {
-            gTitle.innerText = g.name;
-            frame.src = g.url;
-            viewer.style.display = 'flex';
-        };
+        card.innerHTML = `<div class="icon">${icon}</div><div>Mission #${i}</div>`;
+        card.onclick = () => startGame(i);
         grid.appendChild(card);
     }
 
-    function closeGame() {
-        viewer.style.display = 'none';
-        frame.src = ''; 
+    function startGame(id) {
+        view.style.display = 'flex';
+        gName.innerText = `Battle Mission #${id}`;
+        initGame(id);
+        loop();
+    }
+
+    function initGame(id) {
+        canvas.width = 600;
+        canvas.height = 400;
+        
+        // id를 기반으로 게임 성격 결정 (속도, 크기 등)
+        gameState = {
+            id: id,
+            player: { x: 50, y: 200, size: 20, color: `hsl(${id * 137}, 70%, 50%)` },
+            enemies: [],
+            score: 0,
+            speed: 2 + (id % 10), // id에 따라 속도 다름
+            difficulty: (id % 5) + 1,
+            frame: 0
+        };
+
+        // 입력 리스너
+        window.onkeydown = (e) => {
+            if(e.key === 'ArrowUp') gameState.player.y -= 20;
+            if(e.key === 'ArrowDown') gameState.player.y += 20;
+        };
+        canvas.onclick = () => { gameState.player.y -= 40; }; // 클릭 시 점프 (FPS/Flappy 스타일)
+    }
+
+    function loop() {
+        // 배경 청소
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 플레이어 그리기
+        ctx.fillStyle = gameState.player.color;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = gameState.player.color;
+        ctx.fillRect(gameState.player.x, gameState.player.y, gameState.player.size, gameState.player.size);
+
+        // 장애물 생성 (3D 느낌의 다가오는 적들)
+        gameState.frame++;
+        if (gameState.frame % Math.max(1, (20 - gameState.difficulty)) === 0) {
+            gameState.enemies.push({
+                x: canvas.width,
+                y: Math.random() * canvas.height,
+                w: 20 + (gameState.id % 30),
+                h: 20,
+                c: `hsl(${(gameState.id + gameState.frame) % 360}, 80%, 60%)`
+            });
+        }
+
+        // 장애물 이동 및 그리기
+        gameState.enemies.forEach((en, index) => {
+            en.x -= gameState.speed;
+            ctx.fillStyle = en.c;
+            ctx.fillRect(en.x, en.y, en.w, en.h);
+
+            // 충돌 체크
+            if (gameState.player.x < en.x + en.w &&
+                gameState.player.x + gameState.player.size > en.x &&
+                gameState.player.y < en.y + en.h &&
+                gameState.player.y + gameState.player.size > en.y) {
+                gameState.score = 0; // 데미지!
+            }
+        });
+
+        // 화면 밖 적 제거
+        gameState.enemies = gameState.enemies.filter(en => en.x > -50);
+
+        animationId = requestAnimationFrame(loop);
+    }
+
+    function stopGame() {
+        cancelAnimationFrame(animationId);
+        view.style.display = 'none';
     }
 </script>
 </body>
