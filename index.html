@@ -3,178 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>360 MEGA ARCADE - PARTNER</title>
+    <title>360 MEGA ARCADE</title>
     <style>
-        :root {
-            --bg: #0b0e14;
-            --primary: #a855f7;
-            --card-bg: #1e293b;
-        }
+        :root { --bg: #0f172a; --primary: #8b5cf6; --card-bg: #1e293b; }
+        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; padding: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; max-width: 1400px; margin: 0 auto; }
+        .card { background: var(--card-bg); border-radius: 10px; cursor: pointer; transition: 0.2s; text-align: center; border: 1px solid #334155; }
+        .card:hover { transform: scale(1.05); border-color: var(--primary); }
+        .card img { width: 100%; height: 110px; object-fit: cover; border-radius: 10px 10px 0 0; }
+        .card p { margin: 10px; font-size: 13px; font-weight: bold; }
 
-        body {
-            background-color: var(--bg);
-            color: white;
-            font-family: 'Pretendard', sans-serif;
-            margin: 0;
-            overflow-x: hidden;
-        }
-
-        header {
-            background: linear-gradient(180deg, #1e1b4b 0%, var(--bg) 100%);
-            padding: 50px 20px;
-            text-align: center;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 15px;
-            padding: 20px;
-            max-width: 1600px;
-            margin: 0 auto;
-        }
-
-        .card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            cursor: pointer;
-            transition: 0.3s;
-            border: 2px solid transparent;
-            position: relative;
-        }
-
-        .card:hover {
-            transform: translateY(-5px) scale(1.03);
-            border-color: var(--primary);
-            box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
-        }
-
-        .card img {
-            width: 100%;
-            height: 140px;
-            object-fit: cover;
-            border-radius: 10px 10px 0 0;
-        }
-
-        .card .info {
-            padding: 10px;
-            text-align: center;
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        .tag {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            background: var(--primary);
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 4px;
-        }
-
-        /* 게임 실행 화면 */
-        #game-overlay {
+        /* 게임 실행창 - 배경 클릭 닫기 불가 */
+        #game-viewer {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: #000;
-            z-index: 9999;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 10000;
             flex-direction: column;
         }
-
-        .top-bar {
-            height: 50px;
-            background: #111;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 20px;
-        }
-
-        .exit-btn {
-            background: #ef4444;
-            border: none;
-            color: white;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        iframe {
-            flex-grow: 1;
-            border: none;
-            width: 100%;
-            height: 100%;
-        }
+        .nav { background: #111; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .close-btn { background: #ef4444; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        iframe { flex-grow: 1; border: none; background: white; }
     </style>
 </head>
 <body>
 
-<header>
-    <h1>🚀 360 REAL-TIME ARCADE</h1>
-    <p>3D, FPS, 레이싱까지 - 클릭 즉시 실행!</p>
-</header>
+<h2 style="text-align:center;">🎮 360 UNLIMITED GAMES</h2>
 
-<div class="grid" id="mainGrid"></div>
+<div class="grid" id="grid"></div>
 
-<div id="game-overlay">
-    <div class="top-bar">
-        <div id="game-title">Loading...</div>
-        <button class="exit-btn" onclick="stopGame()">게임 종료</button>
+<div id="game-viewer">
+    <div class="nav">
+        <span id="g-title">Loading...</span>
+        <button class="close-btn" onclick="closeGame()">게임 종료 (X)</button>
     </div>
-    <iframe id="game-engine" src="" allow="autoplay; fullscreen; pointer-lock"></iframe>
+    <iframe id="frame" allow="autoplay; fullscreen; pointer-lock; cross-origin-isolated"></iframe>
 </div>
 
 <script>
-    // 바로 실행 가능한 고퀄리티 오픈소스/웹게임 리스트
-    const liveGames = [
-        { name: "3D 사격 (FPS)", url: "https://v6p9d9t4.ssl.hwcdn.net/html/1453214/index.html", tag: "3D/FPS" },
-        { name: "헥사곤 (3D)", url: "https://kripken.github.io/lucid/index.html", tag: "3D" },
-        { name: "PolyTrack", url: "https://polytrack.io/", tag: "Racing" },
-        { name: "Shell Shockers", url: "https://shellshock.io/", tag: "FPS" },
-        { name: "Google Pacman", url: "https://www.google.com/logos/2010/pacman10-i.html", tag: "2D" },
-        { name: "Venge.io (FPS)", url: "https://venge.io/", tag: "3D/FPS" },
-        { name: "Slope", url: "https://kdata1.com/2020/05/slope/", tag: "3D" }
+    // 임베딩(Iframe)이 확실히 허용된 게임 리스트 (샘플)
+    const games = [
+        { name: "3D 사격 (FPS)", url: "https://clover-v6p9.github.io/3d-shooter/" },
+        { name: "2048 3D", url: "https://play2048.co/" },
+        { name: "창의적 건설", url: "https://blockly.games/maze?lang=ko" },
+        { name: "Hextris (3D)", url: "https://hextris.io/" },
+        { name: "Pacman Classic", url: "https://macek.github.io/google_pacman/" },
+        { name: "Space Invaders", url: "https://freeinvaders.org/" }
     ];
 
-    const grid = document.getElementById('mainGrid');
-    const overlay = document.getElementById('game-overlay');
-    const engine = document.getElementById('game-engine');
-    const title = document.getElementById('game-title');
+    const grid = document.getElementById('grid');
+    const viewer = document.getElementById('game-viewer');
+    const frame = document.getElementById('frame');
+    const gTitle = document.getElementById('g-title');
 
-    // 360개 슬롯 생성
+    // 360개 생성
     for (let i = 0; i < 360; i++) {
-        const game = liveGames[i % liveGames.length]; // 리스트 반복 사용
+        const g = games[i % games.length];
         const card = document.createElement('div');
         card.className = 'card';
-        
         card.innerHTML = `
-            <div class="tag">${game.tag}</div>
-            <img src="https://picsum.photos/seed/${i+100}/300/200" alt="game">
-            <div class="info">${game.name} #${i+1}</div>
+            <img src="https://picsum.photos/seed/${i+50}/200/150" alt="game">
+            <p>${g.name} #${i+1}</p>
         `;
-
+        
         card.onclick = () => {
-            title.innerText = game.name;
-            engine.src = game.url;
-            overlay.style.display = 'flex';
-            document.body.style.overflow = 'hidden'; // 스크롤 방지
+            gTitle.innerText = g.name;
+            frame.src = g.url;
+            viewer.style.display = 'flex';
         };
-
         grid.appendChild(card);
     }
 
-    function stopGame() {
-        overlay.style.display = 'none';
-        engine.src = ''; // 리소스 정리
-        document.body.style.overflow = 'auto';
+    function closeGame() {
+        viewer.style.display = 'none';
+        frame.src = ''; 
     }
 </script>
-
 </body>
 </html>
