@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>360 MEGA ARCADE - PARTNER</title>
+    <style>
+        :root {
+            --bg: #0b0e14;
+            --primary: #a855f7;
+            --card-bg: #1e293b;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: white;
+            font-family: 'Pretendard', sans-serif;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        header {
+            background: linear-gradient(180deg, #1e1b4b 0%, var(--bg) 100%);
+            padding: 50px 20px;
+            text-align: center;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 15px;
+            padding: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.3s;
+            border: 2px solid transparent;
+            position: relative;
+        }
+
+        .card:hover {
+            transform: translateY(-5px) scale(1.03);
+            border-color: var(--primary);
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+        }
+
+        .card img {
+            width: 100%;
+            height: 140px;
+            object-fit: cover;
+            border-radius: 10px 10px 0 0;
+        }
+
+        .card .info {
+            padding: 10px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .tag {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: var(--primary);
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        /* 게임 실행 화면 */
+        #game-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            z-index: 9999;
+            flex-direction: column;
+        }
+
+        .top-bar {
+            height: 50px;
+            background: #111;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+
+        .exit-btn {
+            background: #ef4444;
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        iframe {
+            flex-grow: 1;
+            border: none;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🚀 360 REAL-TIME ARCADE</h1>
+    <p>3D, FPS, 레이싱까지 - 클릭 즉시 실행!</p>
+</header>
+
+<div class="grid" id="mainGrid"></div>
+
+<div id="game-overlay">
+    <div class="top-bar">
+        <div id="game-title">Loading...</div>
+        <button class="exit-btn" onclick="stopGame()">게임 종료</button>
+    </div>
+    <iframe id="game-engine" src="" allow="autoplay; fullscreen; pointer-lock"></iframe>
+</div>
+
+<script>
+    // 바로 실행 가능한 고퀄리티 오픈소스/웹게임 리스트
+    const liveGames = [
+        { name: "3D 사격 (FPS)", url: "https://v6p9d9t4.ssl.hwcdn.net/html/1453214/index.html", tag: "3D/FPS" },
+        { name: "헥사곤 (3D)", url: "https://kripken.github.io/lucid/index.html", tag: "3D" },
+        { name: "PolyTrack", url: "https://polytrack.io/", tag: "Racing" },
+        { name: "Shell Shockers", url: "https://shellshock.io/", tag: "FPS" },
+        { name: "Google Pacman", url: "https://www.google.com/logos/2010/pacman10-i.html", tag: "2D" },
+        { name: "Venge.io (FPS)", url: "https://venge.io/", tag: "3D/FPS" },
+        { name: "Slope", url: "https://kdata1.com/2020/05/slope/", tag: "3D" }
+    ];
+
+    const grid = document.getElementById('mainGrid');
+    const overlay = document.getElementById('game-overlay');
+    const engine = document.getElementById('game-engine');
+    const title = document.getElementById('game-title');
+
+    // 360개 슬롯 생성
+    for (let i = 0; i < 360; i++) {
+        const game = liveGames[i % liveGames.length]; // 리스트 반복 사용
+        const card = document.createElement('div');
+        card.className = 'card';
+        
+        card.innerHTML = `
+            <div class="tag">${game.tag}</div>
+            <img src="https://picsum.photos/seed/${i+100}/300/200" alt="game">
+            <div class="info">${game.name} #${i+1}</div>
+        `;
+
+        card.onclick = () => {
+            title.innerText = game.name;
+            engine.src = game.url;
+            overlay.style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // 스크롤 방지
+        };
+
+        grid.appendChild(card);
+    }
+
+    function stopGame() {
+        overlay.style.display = 'none';
+        engine.src = ''; // 리소스 정리
+        document.body.style.overflow = 'auto';
+    }
+</script>
+
+</body>
+</html>
